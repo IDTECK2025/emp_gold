@@ -68,10 +68,12 @@ exports.createCustomerProfile = (req, res) =>
   createProfile(req, res, "customer");
 exports.createShareholderProfile = (req, res) =>
   createProfile(req, res, "shareholder");
-exports.createAgentProfile = (req, res) => createProfile(req, res, "agent");
+exports.createAgentProfile = (req, res) =>
+  createProfile(req, res, "agent");
 exports.createSubagentProfile = (req, res) =>
   createProfile(req, res, "subagent");
-exports.createUserProfile = (req, res) => createProfile(req, res, "user");
+exports.createUserProfile = (req, res) => 
+  createProfile(req, res, "user");
 
 exports.fetchProfile = async (req, res) => {
   try {
@@ -111,6 +113,10 @@ exports.universalLogin = async (req, res) => {
       return res.status(401).json({ error: "Invalid email or PIN" });
     }
 
+    const totalPaidAmount = user.paymentDetails?.reduce((sum, payment) => {
+      return sum + (Number(payment.amount) || 0);
+    }, 0);
+
     const token = jwt.sign(
       {
         email: user.email,
@@ -126,7 +132,6 @@ exports.universalLogin = async (req, res) => {
       message: `${user.profileType} login successful ✅`,
       token,
       user: {
-        amount: user.amount,
         name: user.name,
         lastName: user.lastName,
         panNumber: user.panNumber,
@@ -148,8 +153,11 @@ exports.universalLogin = async (req, res) => {
         schemeDate: user.schemeDate,
         membershipFee: user.membershipFee,
         createdAt: user.createdAt,
+        paymentDetails: user.paymentDetails,
+        totalPaidAmount,
       },
     });
+    
   } catch (err) {
     console.error(`❌ ${req.path} Login error:`, err);
     res.status(500).json({ error: "Server error" });
@@ -183,4 +191,3 @@ exports.getProfilesDetails = async (req, res) => {
     res.status(500).json({ message: "Server Error while fetching profiles" });
   }
 };
-
