@@ -118,10 +118,6 @@ exports.universalLogin = async (req, res) => {
       return sum + (Number(payment.amount) || 0);
     }, 0);
 
-    const totalPaidAmount = user.paymentDetails?.reduce((sum, payment) => {
-      return sum + (Number(payment.amount) || 0);
-    }, 0);
-
     const token = jwt.sign(
       {
         email: user.email,
