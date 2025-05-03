@@ -68,10 +68,12 @@ exports.createCustomerProfile = (req, res) =>
   createProfile(req, res, "customer");
 exports.createShareholderProfile = (req, res) =>
   createProfile(req, res, "shareholder");
-exports.createAgentProfile = (req, res) => createProfile(req, res, "agent");
+exports.createAgentProfile = (req, res) =>
+  createProfile(req, res, "agent");
 exports.createSubagentProfile = (req, res) =>
   createProfile(req, res, "subagent");
-exports.createUserProfile = (req, res) => createProfile(req, res, "user");
+exports.createUserProfile = (req, res) => 
+  createProfile(req, res, "user");
 
 exports.fetchProfile = async (req, res) => {
   try {
@@ -111,6 +113,10 @@ exports.universalLogin = async (req, res) => {
       return res.status(401).json({ error: "Invalid email or PIN" });
     }
 
+    const totalPaidAmount = user.paymentDetails?.reduce((sum, payment) => {
+      return sum + (Number(payment.amount) || 0);
+    }, 0);
+
     const token = jwt.sign(
       {
         email: user.email,
@@ -126,7 +132,6 @@ exports.universalLogin = async (req, res) => {
       message: `${user.profileType} login successful ✅`,
       token,
       user: {
-        amount: user.amount,
         name: user.name,
         lastName: user.lastName,
         panNumber: user.panNumber,
@@ -148,13 +153,17 @@ exports.universalLogin = async (req, res) => {
         schemeDate: user.schemeDate,
         membershipFee: user.membershipFee,
         createdAt: user.createdAt,
+        paymentDetails: user.paymentDetails,
+        totalPaidAmount,
       },
     });
+    
   } catch (err) {
     console.error(`❌ ${req.path} Login error:`, err);
     res.status(500).json({ error: "Server error" });
   }
 };
+
 
 exports.getProfilesDetails = async (req, res) => {
   try {
@@ -184,3 +193,73 @@ exports.getProfilesDetails = async (req, res) => {
   }
 };
 
+
+exports.getDetails = async (req, res) => {
+  try {
+    const { page = 1, limit = 10, profileType, customerId } = req.query;
+
+    const query = {};
+    if (profileType) {
+      query.profileType = profileType;
+    }
+
+    if (customerId) {
+      // Regex to match customerId like EMP33A24B1A, EMP33A24B2A etc.
+      const regex = new RegExp(`^${customerId}\\d+[A-Z]$`);
+      query.customerId = regex;
+
+      const matchedProfiles = await Profile.find({ customerId: regex });
+
+      if (!matchedProfiles.length) {
+        return res.status(404).json({
+          message: `No customerIds found matching pattern for base ID '${customerId}'`
+        });
+      }
+
+      // Extract number-letter suffixes
+      const suffixes = matchedProfiles.map(p => {
+        const match = p.customerId.match(new RegExp(`^${customerId}(\\d+)([A-Z])$`));
+        return match ? { num: parseInt(match[1]), letter: match[2] } : null;
+      }).filter(Boolean);
+
+      const letters = suffixes.map(s => s.letter);
+      const highestLetter = letters.sort().reverse()[0];
+
+      const nextLetter = String.fromCharCode(highestLetter.charCodeAt(0) + 1);
+      const nextIdRegex = new RegExp(`^${customerId}\\d+${nextLetter}$`);
+      const existsNext = await Profile.findOne({ customerId: nextIdRegex });
+
+      // console.log("Matched full profiles:", matchedProfiles);
+
+      if (existsNext) {
+        return res.status(200).json({
+          message: `Next ID with suffix '${nextLetter}' already exists. Stopping.`,
+          stopAt: nextLetter,
+          matchedProfiles
+        });
+      } else {
+        return res.status(200).json({
+          message: `Next ID can be with suffix '${nextLetter}'`,
+          nextLetter,
+          matchedProfiles
+        });
+      }
+    }
+
+    // Regular pagination logic
+    const totalProfiles = await Profile.countDocuments(query);
+    const profiles = await Profile.find(query)
+      .skip((page - 1) * limit)
+      .limit(parseInt(limit));
+
+    res.status(200).json({
+      profiles,
+      totalPages: Math.ceil(totalProfiles / limit),
+      currentPage: Number(page),
+      totalProfiles,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server Error while fetching profiles" });
+  }
+};

@@ -4,7 +4,7 @@ const authMiddleware = require("../utlis/authMiddleware");
 const { 
   createShareholderProfile,createUserProfile,universalLogin,
   createCustomerProfile ,createAgentProfile,fetchProfile,createSubagentProfile,
- getProfilesDetails,
+ getProfilesDetails,getDetails
 } = require('../controllers/adminProfileCntrl');
 const {sendPaymentDetails,sendCusPaymentDetails} = require('../controllers/paymentCntrls');
 
@@ -22,6 +22,7 @@ router.post('/user-login', universalLogin);
 router.post('/customer-login', universalLogin);
 
 router.get('/profilesDetails', getProfilesDetails);
+router.get('/getdetails', getDetails);
 router.post('/process-payment', sendPaymentDetails);
 router.post('/process-cus-payment', sendCusPaymentDetails);
 
