@@ -70,6 +70,7 @@ exports.createShareholderProfile = (req, res) =>
   createProfile(req, res, "shareholder");
 exports.createAgentProfile = (req, res) =>
   createProfile(req, res, "agent");
+
 exports.createSubagentProfile = (req, res) =>
   createProfile(req, res, "subagent");
 exports.createUserProfile = (req, res) => 
@@ -117,6 +118,10 @@ exports.universalLogin = async (req, res) => {
       return sum + (Number(payment.amount) || 0);
     }, 0);
 
+    const totalPaidAmount = user.paymentDetails?.reduce((sum, payment) => {
+      return sum + (Number(payment.amount) || 0);
+    }, 0);
+
     const token = jwt.sign(
       {
         email: user.email,
@@ -155,8 +160,11 @@ exports.universalLogin = async (req, res) => {
         createdAt: user.createdAt,
         paymentDetails: user.paymentDetails,
         totalPaidAmount,
+        paymentDetails: user.paymentDetails,
+        totalPaidAmount,
       },
     });
+    
     
   } catch (err) {
     console.error(`❌ ${req.path} Login error:`, err);

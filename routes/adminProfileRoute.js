@@ -7,7 +7,7 @@ const {
  getProfilesDetails,getDetails
 } = require('../controllers/adminProfileCntrl');
 const {sendPaymentDetails,sendCusPaymentDetails} = require('../controllers/paymentCntrls');
-
+// routes
 router.post('/create-shareholder', authMiddleware, createShareholderProfile);
 router.post('/create-customer', authMiddleware, createCustomerProfile);
 router.post('/create-agent',authMiddleware,createAgentProfile);
